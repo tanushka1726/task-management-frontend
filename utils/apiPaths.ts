@@ -2,13 +2,17 @@ const API_PATHS = {
   AUTH: {
     LOGIN: "/auth/login",
     REGISTER: "/auth/register",
-    REFRESH: "/auth/refresh",
+    REFRESH: "/auth/refresh-token",
     LOGOUT: "/auth/logout",
     CHECK_LOGIN: "/auth/check-login",
   },
   TASKS: {
     BASE: "/tasks",
-    TOGGLE: (id: number) => `/tasks/${id}/toggle`,
+    GET: "/tasks/getTask",
+    CREATE: "/tasks/create",
+    UPDATE: (id: number) => `/tasks/update/${id}`,
+    DELETE: (id: number) => `/tasks/delete/${id}`,
+    TOGGLE: (id: number) => `/tasks/toggle/${id}`,
   },
 };
 

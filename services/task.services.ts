@@ -1,29 +1,45 @@
+import API_PATHS from "../utils/apiPaths";
 import api from "./api";
 
 export const getTasks = (token: string) =>
-  api.get("/getTask", {
+  api.get(API_PATHS.TASKS.GET, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-export const createTask = (token: string, title: string) =>
+export const createTask = (
+  token: string,
+  title: string,
+  description?: string
+) =>
   api.post(
-    "/createTask",
-    { title },
+    API_PATHS.TASKS.CREATE,
+    { title, ...(description !== undefined ? { description } : {}) },
     { headers: { Authorization: `Bearer ${token}` } }
   );
-export const updateTask = (token: string, id: string, title: string) =>
+
+export const updateTask = (
+  token: string,
+  id: string,
+  title?: string,
+  description?: string
+) =>
   api.patch(
-    `/${id}`,
-    { title },
+    API_PATHS.TASKS.UPDATE(Number(id)),
+    {
+      ...(title !== undefined ? { title } : {}),
+      ...(description !== undefined ? { description } : {}),
+    },
     { headers: { Authorization: `Bearer ${token}` } }
   );
 
 export const deleteTask = (token: string, id: string) =>
-  api.delete(`/${id}`, {
+  api.delete(API_PATHS.TASKS.DELETE(Number(id)), {
     headers: { Authorization: `Bearer ${token}` },
   });
 
 export const toggleTask = (token: string, id: string) =>
-  api.patch(`/${id}/toggle`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });  
+  api.patch(
+    API_PATHS.TASKS.TOGGLE(Number(id)),
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );

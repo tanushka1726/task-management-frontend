@@ -1,22 +1,24 @@
 "use client";
-import { useState, useContext } from "react";
-import { loginUser } from "@/services/auth.services";
-import { AuthContext } from "@/context/AuthContext";
-import api from "@/services/api";
-import { API_PATHS } from "@/services/api";
-import { validateEmail} from "@/utils/helper";
-import { AxiosError } from "axios";
-import Input from "@/components/Inputs/input";
 
-export default function Login({setCurrentPage}:{setCurrentPage: (page:string) => void}) {
+import { useContext, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
+import Input from "@/components/Inputs/Input";
+import { AuthContext } from "@/context/AuthContext";
+import { loginUser } from "@/services/auth.services";
+import { validateEmail } from "@/utils/helper";
+
+export default function Login() {
   const auth = useContext(AuthContext);
-  if (!auth) {
-    throw new Error("AuthContext is not available");
-  }
+  const router = useRouter();
+
+  if (!auth) throw new Error("AuthContext is not available");
+
   const { login } = auth;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
@@ -25,78 +27,136 @@ export default function Login({setCurrentPage}:{setCurrentPage: (page:string) =>
       setError("Please enter a valid email address.");
       return;
     }
-    if(!password){
+    if (!password) {
       setError("Password cannot be empty.");
       return;
     }
+
     setError("");
+    setIsSubmitting(true);
+
     try {
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      },
-    {withCredentials:true},);
+      const response = await loginUser({ email, password });
+      const payload = response.data?.data;
 
-    if(response.status === 200 && response.data.accessToken){
-      const userRes = await api.get(API_PATHS.AUTH.CHECK_LOGIN, {
-        withCredentials:true,
-      });
-      localStorage.setItem("user", JSON.stringify(userRes.data));
-      login(response.data.accessToken);
-      setCurrentPage("home");
-    }else{
-      setError(response.data?.message || "Invalid email or password.");
-
-    }
-  }
-    catch (error) {
-      console.error("Login error:", error);
-      const axiosError = error as AxiosError<{ message: string }>;
-      if (axiosError.response && axiosError.response.data?.message) {
-        setError(axiosError.response.data.message);
-      } else {
-        setError("Something went wrong! Please try again.");
+      if (response.status === 201 && payload?.accessToken) {
+        login(payload.accessToken);
+        router.push("/");
+        return;
       }
+
+      setError(response.data?.message || "Invalid email or password.");
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      setError(
+        axiosError.response?.data?.message ||
+          "Something went wrong! Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-   
   };
 
   return (
-     <div className='w-[90vw] md:w-[33vw] p-7 flex flex-col justify-center'>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
 
+        {/* Logo mark */}
+        <div className="mb-8 flex flex-col items-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-200 mb-4">
+            <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+          <span className="text-lg font-black text-slate-900 tracking-tight">TaskFlow</span>
+        </div>
 
-      <h3 className=" text-2xl font-bold text-black ">Welcome Back!!</h3>
-      <p className="text-lg text-slate-700 mt-1.25 mb-6"> Please enter your details to Log In</p>
-      <form action="" onSubmit={handleLogin}>
-        <Input
-          value={email}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-          label="Email Address"
-          placeholder="@john@gmail.com"
-          type="text"
-        />
-        <Input
-          value={password}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-          label="Password"
-          placeholder="Min 8 characters"
-          type="password"
-        />
+        {/* Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-7">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Welcome back</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Log in to continue managing your tasks.
+            </p>
+          </div>
 
-        {error && <p className='text-red-500 text-xs pb-2.5'>{error}</p>}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              label="Email Address"
+              placeholder="you@example.com"
+              type="text"
+            />
 
-        <button type='submit' className='btn-primary'>LOGIN</button>
-        <p className="text-[13px] text-slate-800 mt-3">Don't have an account ? {""}
-          <button className="font-medium text-primary underline cursor-pointer" onClick={() => {
-            setCurrentPage("signup")
-          }}>
-            Signup
-          </button>
+            <Input
+              value={password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              label="Password"
+              placeholder="Enter your password"
+              type="password"
+            />
+
+            {/* Error */}
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-600">
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm shadow-violet-200 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="flex items-center justify-center gap-2">
+                {isSubmitting ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Logging in...
+                  </>
+                ) : (
+                  <>
+                    Log In
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </>
+                )}
+              </span>
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-100" />
+            <span className="text-xs text-slate-400 font-medium">or</span>
+            <div className="h-px flex-1 bg-slate-100" />
+          </div>
+
+          <p className="text-center text-sm text-slate-500">
+            Don&apos;t have an account?{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/auth/register")}
+              className="font-bold text-violet-600 hover:text-violet-700 transition-colors"
+            >
+              Create one free →
+            </button>
+          </p>
+        </div>
+
+        {/* Footer note */}
+        <p className="mt-6 text-center text-xs text-slate-400">
+          Your tasks are private and secure.
         </p>
-
-      </form>
-
+      </div>
     </div>
-  )
+  );
 }
-
