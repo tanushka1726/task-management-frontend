@@ -101,7 +101,7 @@ export default function Register() {
 
             <Input
               value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value.toLowerCase())}
               label="Email Address"
               placeholder="you@example.com"
               type="text"
